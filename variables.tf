@@ -34,17 +34,6 @@ variable "vpn_record_name" {
   default     = "vpn.gynx.cc"
 }
 
-variable "cloudflare_zone_id" {
-  description = "Cloudflare zone ID for the DNS record."
-  type        = string
-}
-
-variable "cloudflare_api_token" {
-  description = "Cloudflare API token with DNS edit permissions for the zone."
-  type        = string
-  sensitive   = true
-}
-
 variable "cloudflare_api_token_ssm_path" {
   description = "SSM parameter path for the Cloudflare API token."
   type        = string

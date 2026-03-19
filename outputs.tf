@@ -27,12 +27,12 @@ output "instance_profile_name" {
 
 output "cloudflare_api_token_ssm_path" {
   description = "SSM parameter path holding the Cloudflare API token."
-  value       = aws_ssm_parameter.cloudflare_api_token.name
+  value       = var.cloudflare_api_token_ssm_path
 }
 
 output "cloudflare_zone_id_ssm_path" {
   description = "SSM parameter path holding the Cloudflare zone ID."
-  value       = aws_ssm_parameter.cloudflare_zone_id.name
+  value       = var.cloudflare_zone_id_ssm_path
 }
 
 output "openvpn_state_mountpoint" {

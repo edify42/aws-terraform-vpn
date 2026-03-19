@@ -14,9 +14,12 @@ What this creates:
 
 Usage:
 
-1. Copy `terraform.tfvars.example` to `terraform.tfvars` and set `cloudflare_zone_id` and `cloudflare_api_token`.
-2. Run `terraform init`.
-3. Run `terraform apply`.
+1. Create the Cloudflare SSM parameters yourself before applying:
+   - `/infra/vpn/cloudflare/api-token` as a `SecureString`
+   - `/infra/vpn/cloudflare/zone-id` as a `String`
+2. Copy `terraform.tfvars.example` to `terraform.tfvars` only if you want to override the default SSM paths.
+3. Run `terraform init`.
+4. Run `terraform apply`.
 
 OpenVPN persistence:
 

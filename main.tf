@@ -32,6 +32,10 @@ data "aws_ami" "amazon_linux_2023" {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
+data "aws_partition" "current" {}
+
 module "vpc" {
   source  = "aws-ia/vpc/aws"
   version = "~> 4.5"
@@ -47,22 +51,6 @@ module "vpc" {
   }
 
   tags = local.common_tags
-}
-
-resource "aws_ssm_parameter" "cloudflare_api_token" {
-  name        = var.cloudflare_api_token_ssm_path
-  description = "Cloudflare API token used by the VPN instance at boot."
-  type        = "SecureString"
-  value       = var.cloudflare_api_token
-  tags        = local.common_tags
-}
-
-resource "aws_ssm_parameter" "cloudflare_zone_id" {
-  name        = var.cloudflare_zone_id_ssm_path
-  description = "Cloudflare zone ID used by the VPN instance at boot."
-  type        = "String"
-  value       = var.cloudflare_zone_id
-  tags        = local.common_tags
 }
 
 resource "aws_iam_role" "instance" {
@@ -103,8 +91,8 @@ resource "aws_iam_role_policy" "parameter_access" {
           "ssm:GetParameters"
         ]
         Resource = [
-          aws_ssm_parameter.cloudflare_api_token.arn,
-          aws_ssm_parameter.cloudflare_zone_id.arn
+          "arn:${data.aws_partition.current.partition}:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${var.cloudflare_api_token_ssm_path}",
+          "arn:${data.aws_partition.current.partition}:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${var.cloudflare_zone_id_ssm_path}"
         ]
       },
       {
