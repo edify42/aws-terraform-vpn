@@ -8,37 +8,24 @@ imdsv2() {
   curl -fsS -H "X-aws-ec2-metadata-token: $${TOKEN}" "http://169.254.169.254/latest/$1"
 }
 
-dnf install -y openvpn jq curl awscli amazon-ssm-agent xfsprogs
+dnf install -y openvpn jq curl awscli amazon-ssm-agent
 systemctl enable --now amazon-ssm-agent
 
-OPENVPN_DEVICE="${openvpn_state_device_name}"
-OPENVPN_DISK=""
-
-for candidate in "$${OPENVPN_DEVICE}" "$${OPENVPN_DEVICE#/dev/}" "/dev/nvme1n1"; do
-  if [ -b "$${candidate}" ]; then
-    OPENVPN_DISK="$${candidate}"
-    break
-  fi
-done
-
-if [ -z "$${OPENVPN_DISK}" ]; then
-  echo "Unable to find OpenVPN state disk" >&2
-  exit 1
-fi
-
-if ! blkid "$${OPENVPN_DISK}" >/dev/null 2>&1; then
-  mkfs.xfs -f "$${OPENVPN_DISK}"
-fi
-
 mkdir -p /var/lib/openvpn
-grep -q '^LABEL=openvpn-state /var/lib/openvpn ' /etc/fstab || echo "LABEL=openvpn-state /var/lib/openvpn xfs defaults,nofail 0 2" >> /etc/fstab
-xfs_admin -L openvpn-state "$${OPENVPN_DISK}" || true
-mount -a
-
 mkdir -p /var/lib/openvpn/{config,pki,ccd,clients,logs}
 chmod 700 /var/lib/openvpn/pki
 
 mkdir -p /etc/openvpn/server
+cat >/usr/local/bin/openvpn-sync-config.sh <<'SCRIPT'
+#!/bin/bash
+set -euo pipefail
+
+mkdir -p /var/lib/openvpn
+aws s3 sync "s3://${openvpn_config_bucket_name}/${openvpn_config_s3_prefix}/" /var/lib/openvpn/ --region "${aws_region}"
+SCRIPT
+
+chmod 700 /usr/local/bin/openvpn-sync-config.sh
+
 cat >/usr/local/bin/update-vpn-dns.sh <<'SCRIPT'
 #!/bin/bash
 set -euo pipefail
@@ -94,6 +81,8 @@ cat >/usr/local/bin/openvpn-bootstrap.sh <<'SCRIPT'
 #!/bin/bash
 set -euo pipefail
 
+/usr/local/bin/openvpn-sync-config.sh
+
 if [ -f /var/lib/openvpn/config/server.conf ]; then
   install -m 600 /var/lib/openvpn/config/server.conf /etc/openvpn/server/server.conf
   systemctl enable --now openvpn-server@server.service
@@ -107,7 +96,8 @@ chmod 700 /usr/local/bin/openvpn-bootstrap.sh
 cat >/etc/systemd/system/openvpn-bootstrap.service <<'UNIT'
 [Unit]
 Description=Restore persisted OpenVPN config and start the service when available
-After=network.target
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=oneshot

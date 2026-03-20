@@ -58,16 +58,16 @@ variable "openvpn_udp_port" {
   default     = 1194
 }
 
-variable "openvpn_state_volume_size" {
-  description = "Size in GiB for the EBS volume used to persist OpenVPN material."
-  type        = number
-  default     = 20
+variable "openvpn_config_bucket_name" {
+  description = "Optional override for the S3 bucket that stores the OpenVPN config bundle."
+  type        = string
+  default     = "bear-openvpn-config"
 }
 
-variable "openvpn_state_device_name" {
-  description = "Device name for the persistent OpenVPN state volume."
+variable "openvpn_config_s3_prefix" {
+  description = "S3 prefix containing the OpenVPN config bundle."
   type        = string
-  default     = "/dev/sdf"
+  default     = "openvpn"
 }
 
 variable "ssh_ingress_cidrs" {

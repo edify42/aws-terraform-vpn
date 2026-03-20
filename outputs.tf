@@ -35,7 +35,17 @@ output "cloudflare_zone_id_ssm_path" {
   value       = var.cloudflare_zone_id_ssm_path
 }
 
-output "openvpn_state_mountpoint" {
-  description = "Instance path intended for persisted OpenVPN config, keys, and PKI."
+output "openvpn_data_path" {
+  description = "Instance path used for the synced OpenVPN config, keys, and PKI."
   value       = "/var/lib/openvpn"
+}
+
+output "openvpn_config_bucket_name" {
+  description = "S3 bucket used to store the OpenVPN config bundle."
+  value       = aws_s3_bucket.openvpn_config.bucket
+}
+
+output "openvpn_config_s3_prefix" {
+  description = "S3 prefix used to sync the OpenVPN config bundle to the instance."
+  value       = local.openvpn_config_s3_prefix
 }

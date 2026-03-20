@@ -10,7 +10,8 @@ What this creates:
 - Public subnets only, with one EC2 instance maintained by an ASG.
 - Default instance type of `t4g.small`.
 - An IAM instance profile for Systems Manager and SSM Parameter Store reads.
-- A userdata bootstrap that installs OpenVPN on Amazon Linux 2023, enables `amazon-ssm-agent`, mounts a dedicated EBS volume at `/var/lib/openvpn`, and updates `vpn.gynx.cc` in Cloudflare on every boot.
+- A versioned private S3 bucket for the OpenVPN config bundle.
+- A userdata bootstrap that installs OpenVPN on Amazon Linux 2023, enables `amazon-ssm-agent`, syncs config from S3 into `/var/lib/openvpn` on the root filesystem, and updates `vpn.gynx.cc` in Cloudflare on every boot.
 
 Usage:
 
@@ -21,12 +22,12 @@ Usage:
 3. Run `terraform init`.
 4. Run `terraform apply`.
 
-OpenVPN persistence:
+OpenVPN config delivery:
 
-- Persist your generated OpenVPN material under `/var/lib/openvpn`.
-- Put the server config at `/var/lib/openvpn/config/server.conf`.
-- Keep your CA, server keys, client keys, CCD, and related PKI under `/var/lib/openvpn/pki`, `/var/lib/openvpn/ccd`, and `/var/lib/openvpn/clients`.
-- On boot, `openvpn-bootstrap.service` restores `/var/lib/openvpn/config/server.conf` to `/etc/openvpn/server/server.conf` and starts `openvpn-server@server.service` if the config exists.
+- Upload your OpenVPN bundle to `s3://<openvpn_config_bucket_name>/<openvpn_config_s3_prefix>/`.
+- Put the server config at `config/server.conf` within that prefix.
+- Keep your CA, server keys, client keys, CCD, and related PKI under `pki/`, `ccd/`, and `clients/` within that prefix.
+- On boot, `openvpn-bootstrap.service` syncs the S3 prefix to `/var/lib/openvpn`, restores `/var/lib/openvpn/config/server.conf` to `/etc/openvpn/server/server.conf`, and starts `openvpn-server@server.service` if the config exists.
 
 Cloudflare boot-time DNS update:
 

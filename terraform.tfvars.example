@@ -1,3 +1,7 @@
 # Optional overrides if your existing SSM parameters live somewhere else.
 # cloudflare_api_token_ssm_path = "/infra/vpn/cloudflare/api-token"
 # cloudflare_zone_id_ssm_path   = "/infra/vpn/cloudflare/zone-id"
+
+# Optional overrides for the OpenVPN config bundle bucket and prefix.
+# openvpn_config_bucket_name = "my-existing-or-preferred-bucket-name"
+# openvpn_config_s3_prefix   = "openvpn"

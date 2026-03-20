@@ -1,4 +1,11 @@
 locals {
+  openvpn_config_bucket_name = coalesce(
+    var.openvpn_config_bucket_name,
+    lower("${var.name}-${data.aws_caller_identity.current.account_id}-${var.aws_region}-openvpn-config")
+  )
+
+  openvpn_config_s3_prefix = trim(var.openvpn_config_s3_prefix, "/")
+
   common_tags = merge(
     {
       ManagedBy = "terraform"
@@ -51,6 +58,44 @@ module "vpc" {
   }
 
   tags = local.common_tags
+}
+
+resource "aws_s3_bucket" "openvpn_config" {
+  bucket = local.openvpn_config_bucket_name
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.name}-openvpn-config"
+    }
+  )
+}
+
+resource "aws_s3_bucket_versioning" "openvpn_config" {
+  bucket = aws_s3_bucket.openvpn_config.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "openvpn_config" {
+  bucket = aws_s3_bucket.openvpn_config.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "openvpn_config" {
+  bucket = aws_s3_bucket.openvpn_config.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
 resource "aws_iam_role" "instance" {
@@ -106,6 +151,32 @@ resource "aws_iam_role_policy" "parameter_access" {
             "kms:ViaService" = "ssm.${var.aws_region}.amazonaws.com"
           }
         }
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.openvpn_config.arn
+        ]
+        Condition = {
+          StringLike = {
+            "s3:prefix" = [
+              local.openvpn_config_s3_prefix,
+              "${local.openvpn_config_s3_prefix}/*"
+            ]
+          }
+        }
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject"
+        ]
+        Resource = [
+          "${aws_s3_bucket.openvpn_config.arn}/${local.openvpn_config_s3_prefix}/*"
+        ]
       }
     ]
   })
@@ -167,7 +238,8 @@ data "cloudinit_config" "userdata" {
       cloudflare_zone_id_ssm_path   = var.cloudflare_zone_id_ssm_path
       vpn_record_name               = var.vpn_record_name
       cloudflare_record_ttl         = var.cloudflare_record_ttl
-      openvpn_state_device_name     = var.openvpn_state_device_name
+      openvpn_config_bucket_name    = aws_s3_bucket.openvpn_config.bucket
+      openvpn_config_s3_prefix      = local.openvpn_config_s3_prefix
     })
   }
 }
@@ -204,17 +276,6 @@ resource "aws_launch_template" "vpn" {
 
     ebs {
       volume_size           = 16
-      volume_type           = "gp3"
-      delete_on_termination = true
-      encrypted             = true
-    }
-  }
-
-  block_device_mappings {
-    device_name = var.openvpn_state_device_name
-
-    ebs {
-      volume_size           = var.openvpn_state_volume_size
       volume_type           = "gp3"
       delete_on_termination = true
       encrypted             = true
