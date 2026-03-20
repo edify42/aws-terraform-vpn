@@ -8,7 +8,7 @@ imdsv2() {
   curl -fsS -H "X-aws-ec2-metadata-token: $${TOKEN}" "http://169.254.169.254/latest/$1"
 }
 
-dnf install -y openvpn jq curl awscli amazon-ssm-agent
+dnf install -y openvpn # jq curl awscli amazon-ssm-agent - all installed
 systemctl enable --now amazon-ssm-agent
 
 mkdir -p /var/lib/openvpn
