@@ -14,34 +14,13 @@ locals {
   )
 }
 
-data "aws_ami" "amazon_linux_2023" {
-  most_recent = true
-  owners      = ["137112412989"]
-
-  filter {
-    name   = "name"
-    values = ["al2023-ami-2023*-arm64"]
-  }
-
-  filter {
-    name   = "architecture"
-    values = ["arm64"]
-  }
-
-  filter {
-    name   = "root-device-type"
-    values = ["ebs"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
 data "aws_caller_identity" "current" {}
 
 data "aws_partition" "current" {}
+
+data "aws_ssm_parameter" "ubuntu_ami" {
+  name = "/aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id"
+}
 
 module "vpc" {
   source  = "aws-ia/vpc/aws"
@@ -247,7 +226,7 @@ data "cloudinit_config" "userdata" {
 
 resource "aws_launch_template" "vpn" {
   name_prefix            = "${var.name}-"
-  image_id               = data.aws_ami.amazon_linux_2023.id
+  image_id               = data.aws_ssm_parameter.ubuntu_ami.value
   instance_type          = var.instance_type
   update_default_version = true
 

@@ -5,13 +5,13 @@ Terraform stack for a single-instance OpenVPN server on EC2 behind an Auto Scali
 What this creates:
 
 - AWS provider pinned to `ap-southeast-1` by default.
-- Amazon Linux 2023 `arm64` AMI selection for Graviton instances.
+- Ubuntu 24.04 LTS `arm64` AMI selection for Graviton instances via Canonical's public SSM parameter.
 - A VPC in Singapore using the AWS IA VPC module.
 - Public subnets only, with one EC2 instance maintained by an ASG.
 - Default instance type of `t4g.small`.
 - An IAM instance profile for Systems Manager and SSM Parameter Store reads.
 - A versioned private S3 bucket for the OpenVPN config bundle.
-- A userdata bootstrap that installs OpenVPN on Amazon Linux 2023, enables `amazon-ssm-agent`, syncs config from S3 into `/var/lib/openvpn` on the root filesystem, and updates `vpn.gynx.cc` in Cloudflare on every boot.
+- A userdata bootstrap that installs OpenVPN on Ubuntu 24.04 LTS, ensures SSM Agent is running, syncs config from S3 into `/var/lib/openvpn` on the root filesystem, and updates `vpn.gynx.cc` in Cloudflare on every boot.
 
 Usage:
 
@@ -33,12 +33,16 @@ First-time manual initialization:
 
 1. Install the tooling on a workstation or temporary admin host:
    ```bash
-   sudo dnf install -y openvpn easy-rsa awscli
+   sudo dnf install -y openvpn awscli tar gzip curl
    ```
-2. Create a working directory and initialize Easy-RSA:
+2. Create a working directory and download Easy-RSA:
    ```bash
    mkdir -p ~/openvpn-bootstrap
-   cp -r /usr/share/easy-rsa/3 ~/openvpn-bootstrap/easy-rsa
+   cd ~/openvpn-bootstrap
+   EASYRSA_VERSION=3.2.6
+   curl -L -o easy-rsa.tgz "https://github.com/OpenVPN/easy-rsa/releases/download/v${EASYRSA_VERSION}/EasyRSA-${EASYRSA_VERSION}.tgz"
+   tar -xzf easy-rsa.tgz
+   mv "EasyRSA-${EASYRSA_VERSION}" easy-rsa
    cd ~/openvpn-bootstrap/easy-rsa
    ./easyrsa init-pki
    ```

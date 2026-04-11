@@ -8,8 +8,19 @@ imdsv2() {
   curl -fsS -H "X-aws-ec2-metadata-token: $${TOKEN}" "http://169.254.169.254/latest/$1"
 }
 
-dnf install -y openvpn # jq curl awscli amazon-ssm-agent - all installed
-systemctl enable --now amazon-ssm-agent
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y openvpn jq curl snapd
+snap install aws-cli --classic
+
+if systemctl list-unit-files snap.amazon-ssm-agent.amazon-ssm-agent.service >/dev/null 2>&1; then
+  systemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service
+elif systemctl list-unit-files amazon-ssm-agent.service >/dev/null 2>&1; then
+  systemctl enable --now amazon-ssm-agent.service
+elif command -v snap >/dev/null 2>&1; then
+  snap install amazon-ssm-agent --classic
+  systemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service
+fi
 
 mkdir -p /var/lib/openvpn
 mkdir -p /var/lib/openvpn/{config,pki,ccd,clients,logs}
@@ -67,7 +78,7 @@ cat >/etc/systemd/system/update-vpn-dns.service <<UNIT
 [Unit]
 Description=Update ${vpn_record_name} Cloudflare record with the current instance public IP
 Wants=network-online.target
-After=network-online.target amazon-ssm-agent.service
+After=network-online.target
 
 [Service]
 Type=oneshot
