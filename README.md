@@ -2,6 +2,13 @@
 
 Terraform stack for a single-instance OpenVPN server on EC2 behind an Auto Scaling Group.
 
+```terrible
+After running for 6 weeks - Why this is terrible:
+AWS Charges for IPv4 IPs and that blows the cost out.
+We could try do an IPv6 only VPN server but I didn't want to risk it while travelling in hotel WIFIs etc.
+
+```
+
 What this creates:
 
 - AWS provider pinned to `ap-southeast-1` by default.
